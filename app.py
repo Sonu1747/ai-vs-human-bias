@@ -396,6 +396,83 @@ st.markdown("""
         -webkit-backdrop-filter: blur(16px) saturate(120%);
         border-right: 1px solid rgba(255, 255, 255, 0.12);
     }
+    
+    /* Glowing navigation button styles */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 
+            0 0 20px rgba(102, 126, 234, 0.6),
+            0 0 40px rgba(102, 126, 234, 0.4),
+            0 0 60px rgba(102, 126, 234, 0.2);
+        animation: glowPulse 2s ease-in-out infinite alternate;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stButton > button[kind="primary"]:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    .stButton > button[kind="primary"]:hover:before {
+        left: 100%;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 0 25px rgba(102, 126, 234, 0.8),
+            0 0 50px rgba(102, 126, 234, 0.6),
+            0 0 75px rgba(102, 126, 234, 0.4);
+    }
+    
+    .stButton > button[kind="secondary"] {
+        background: rgba(255, 255, 255, 0.08);
+        color: #e2e8f0;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-weight: 500;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+    
+    .stButton > button[kind="secondary"]:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.25);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    @keyframes glowPulse {
+        0% {
+            box-shadow: 
+                0 0 20px rgba(102, 126, 234, 0.6),
+                0 0 40px rgba(102, 126, 234, 0.4),
+                0 0 60px rgba(102, 126, 234, 0.2);
+        }
+        100% {
+            box-shadow: 
+                0 0 25px rgba(102, 126, 234, 0.8),
+                0 0 50px rgba(102, 126, 234, 0.6),
+                0 0 75px rgba(102, 126, 234, 0.4);
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -529,7 +606,7 @@ st.markdown("""
 # Load data
 df = generate_sample_data()
 
-# Sidebar navigation (simple clickable links, no dropdown/radio)
+# Sidebar navigation using Streamlit buttons
 st.sidebar.title("📊 Navigation")
 
 NAV_ITEMS = [
@@ -542,34 +619,26 @@ NAV_ITEMS = [
     "📡 Real Time Analysis",
 ]
 
-# Read current page from query params (fallback to first)
-qp = st.query_params
-page_value = qp.get("page", NAV_ITEMS[0])
-page = page_value[0] if isinstance(page_value, list) else page_value
-if page not in NAV_ITEMS:
-    page = NAV_ITEMS[0]
+# Initialize session state for current page
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = NAV_ITEMS[0]
 
-# Render clickable nav links
-st.sidebar.markdown(
-    """
-    <style>
-      .nav-link {display:block; padding:12px 14px; margin:10px 0; border-radius:14px; text-decoration:none !important; font-size:1.15rem; font-weight:700; color:#e2e8f0 !important; background:rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.18); transition:all .2s ease; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(2,6,23,0.25)}
-      .nav-link:link, .nav-link:visited, .nav-link:hover, .nav-link:active { text-decoration: none !important; color:#e2e8f0 !important; border-bottom: none !important; }
-      .nav-link:hover {transform:translateY(-1px); box-shadow:0 10px 28px rgba(2,6,23,0.35); background:rgba(255,255,255,0.14)}
-      .nav-link.active {background:linear-gradient(135deg, rgba(102,126,234,0.85), rgba(118,75,162,0.85)); color:#fff !important; border-color:transparent; box-shadow:0 10px 30px rgba(102,126,234,0.35)}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-nav_html = []
+# Navigation buttons
 for item in NAV_ITEMS:
-    is_active = "active" if item == page else ""
-    nav_html.append(
-        f'<a class="nav-link {is_active}" href="?page={quote(item)}">{item}</a>'
-    )
+    is_active = item == st.session_state.current_page
+    button_type = "primary" if is_active else "secondary"
+    
+    if st.sidebar.button(
+        item, 
+        key=f"nav_{item}", 
+        type=button_type,
+        use_container_width=True
+    ):
+        st.session_state.current_page = item
+        st.rerun()
 
-st.sidebar.markdown("\n".join(nav_html), unsafe_allow_html=True)
+# Set the current page
+page = st.session_state.current_page
 
 if page == "🏠 Dashboard Overview":
     # Key metrics
@@ -1097,7 +1166,7 @@ elif page == "📄 Resume Upload":
                 <div class="human-result">
                     <h3>🤖 AI Generated</h3>
                     <p><strong>100.0% probability</strong></p>
-                </div>
+g                </div>
                 """, unsafe_allow_html=True)
                 st.stop()
             
